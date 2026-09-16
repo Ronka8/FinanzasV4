@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Libro — Finanzas personales Bs / USD / USDT</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12181C">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root{
+    --ink:#12181C;
+    --panel:#1B2328;
+    --panel-2:#222C32;
+    --line:#313D44;
+    --text:#E9E6DD;
+    --text-dim:#9AA7AC;
+    --bs:#4C9A6A;
+    --usd:#3B8CB0;
+    --usdt:#26A17B;
+    --loss:#C4573A;
+    --gain:#7FB069;
+    --warn:#D9A441;
+    --radius:10px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.brand,.num{font-family:"Georgia","Iowan Old Style",serif;}
+  .mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  /* ---------- layout (drawer lateral) ---------- */
+  #app{display:block;min-height:100vh;}
+  .topbar{
+    position:sticky;top:0;z-index:60;height:54px;display:flex;align-items:center;gap:12px;
+    padding:0 16px;background:var(--panel);border-bottom:1px solid var(--line);
+  }
+  .hamburger{
+    width:36px;height:36px;flex:none;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--text);display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;line-height:1;
+  }
+  .topbar .brand-inline{font-family:"Georgia","Iowan Old Style",serif;font-size:1.15rem;letter-spacing:.3px;}
+  .topbar .brand-inline small{display:block;font-family:inherit;font-size:.6rem;color:var(--text-dim);letter-spacing:1.5px;}
+
+  .sidebar-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:70;
+  }
+  .sidebar-overlay.show{display:block;}
+
+  .sidebar{
+    width:240px;background:var(--panel);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;
+    position:fixed;top:0;left:0;height:100vh;z-index:80;
+    transform:translateX(-100%);transition:transform .22s ease;
+  }
+  .sidebar.open{transform:translateX(0);}
+  .brand{padding:22px 20px 14px;font-size:1.35rem;letter-spacing:.3px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .brand small{display:block;font-family:inherit;font-size:.62rem;color:var(--text-dim);letter-spacing:1.5px;margin-top:2px;}
+  .sidebar-close{background:none;border:none;color:var(--text-dim);font-size:1.2rem;line-height:1;padding:4px;}
+  nav{padding:10px 0;flex:1;}
+  nav button{
+    display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    background:none;border:none;color:var(--text-dim);padding:11px 20px;
+    font-size:.92rem;border-left:3px solid transparent;
+  }
+  nav button:hover{color:var(--text);background:var(--panel-2);}
+  nav button.active{color:var(--text);background:var(--panel-2);border-left-color:var(--usdt);}
+  .sync-pill{margin:14px;padding:10px 12px;border-radius:var(--radius);background:var(--panel-2);
+    border:1px solid var(--line);font-size:.72rem;color:var(--text-dim);}
+  .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--warn);}
+  .sync-dot.ok{background:var(--gain);}
+  .sync-dot.off{background:var(--loss);}
+
+  main{padding:24px 24px 60px;max-width:1180px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .view-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap;gap:10px;}
+  .view-head h2{margin:0;font-size:1.5rem;font-weight:500;}
+  .view-head p{margin:2px 0 0;color:var(--text-dim);font-size:.85rem;}
+
+  .btn{background:var(--usdt);color:#0d1512;border:none;padding:10px 18px;border-radius:8px;font-size:.88rem;font-weight:600;}
+  .btn.secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--line);}
+  .btn.ghost{background:none;color:var(--text-dim);border:1px solid var(--line);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  /* ---------- exchange board (hero) ---------- */
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+  .board .cell{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;}
+  .board .cell::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .board .cell.bs::before{background:var(--bs);}
+  .board .cell.usd::before{background:var(--usd);}
+  .board .cell.usdt::before{background:var(--usdt);}
+  .board .cell .label{font-size:.7rem;letter-spacing:1px;color:var(--text-dim);}
+  .board .cell .amount{font-size:1.7rem;margin-top:4px;}
+  .board .cell .sub{font-size:.75rem;margin-top:6px;color:var(--text-dim);}
+  .board .cell .sub.up{color:var(--gain);}
+  .board .cell .sub.down{color:var(--loss);}
+
+  .rates-strip{display:flex;gap:18px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px 18px;margin-bottom:22px;font-size:.82rem;align-items:center;}
+  .rates-strip .r{color:var(--text-dim);}
+  .rates-strip .r b{color:var(--text);font-weight:600;}
+  .rates-strip .spacer{flex:1;}
+
+  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;}
+  .card h3{margin:0 0 12px;font-size:1rem;font-weight:500;color:var(--text-dim);}
+
+  .tabs{display:flex;gap:4px;margin-bottom:14px;}
+  .tabs button{padding:6px 14px;border-radius:20px;border:1px solid var(--line);background:none;color:var(--text-dim);font-size:.8rem;}
+  .tabs button.active{background:var(--usdt);color:#0d1512;border-color:var(--usdt);}
+
+  canvas{width:100%;display:block;}
+
+  table{width:100%;border-collapse:collapse;font-size:.85rem;}
+  th{text-align:left;color:var(--text-dim);font-weight:500;font-size:.72rem;letter-spacing:.5px;
+    padding:8px 10px;border-bottom:1px solid var(--line);}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);}
+  tr:hover td{background:var(--panel-2);}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;background:var(--panel-2);border:1px solid var(--line);}
+  .amt{font-family:"SFMono-Regular",Consolas,monospace;}
+  .amt.pos{color:var(--gain);}
+  .amt.neg{color:var(--loss);}
+  .row-actions button{background:none;border:none;color:var(--text-dim);font-size:.85rem;margin-right:6px;}
+  .row-actions button:hover{color:var(--text);}
+
+  .empty{padding:40px 10px;text-align:center;color:var(--text-dim);}
+
+  /* ---------- forms / modal ---------- */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;}
+  .modal-bg.show{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px 26px;width:100%;max-width:520px;}
+  .modal h3{margin-top:0;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:.76rem;color:var(--text-dim);margin-bottom:5px;}
+  .field input,.field select,.field textarea{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;
+    padding:9px 10px;color:var(--text);font-size:.9rem;font-family:inherit;
+  }
+  .field textarea{resize:vertical;min-height:50px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .hint{font-size:.72rem;color:var(--text-dim);margin-top:4px;}
+
+  .form-toggle{display:flex;gap:8px;margin-bottom:18px;}
+  .form-toggle button{flex:1;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--text-dim);}
+  .form-toggle button.active{background:var(--usdt);color:#0d1512;border-color:var(--usdt);}
+
+  .ocr-drop{border:1.5px dashed var(--line);border-radius:var(--radius);padding:30px;text-align:center;color:var(--text-dim);}
+  .ocr-drop.drag{border-color:var(--usdt);color:var(--text);}
+  .ocr-progress{height:5px;background:var(--panel-2);border-radius:4px;overflow:hidden;margin-top:10px;}
+  .ocr-progress i{display:block;height:100%;background:var(--usdt);width:0%;}
+  .ocr-text{max-height:120px;overflow:auto;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:7px;padding:10px;font-size:.75rem;white-space:pre-wrap;margin-top:10px;}
+
+  .budget-bar{height:8px;background:var(--panel-2);border-radius:4px;overflow:hidden;margin-top:6px;}
+  .budget-bar i{display:block;height:100%;background:var(--usdt);}
+  .budget-bar i.over{background:var(--loss);}
+  .cat-row{margin-bottom:14px;}
+  .cat-row .top{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:2px;}
+  .cat-row .top span:last-child{color:var(--text-dim);}
+
+  footer.note{margin-top:30px;color:var(--text-dim);font-size:.72rem;line-height:1.5;}
+
+  @media (max-width:820px){
+    .sidebar{width:82%;max-width:280px;}
+    main{padding:18px;}
+    .board{grid-template-columns:1fr;}
+    .grid2{grid-template-columns:1fr;}
+    .row2,.row3{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="topbar">
+    <button class="hamburger" id="btnMenuToggle" aria-label="Abrir menú">☰</button>
+    <div class="brand-inline">Libro<small>FINANZAS · Bs · USD · USDT</small></div>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">Libro<small>FINANZAS · Bs · USD · USDT</small><button class="sidebar-close" id="btnSidebarClose" aria-label="Cerrar menú">✕</button></div>
+    <nav id="nav">
+      <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="transacciones">Transacciones</button>
+      <button data-view="categorias">Categorías</button>
+      <button data-view="deudas">Deudas y créditos</button>
+      <button data-view="ocr">Leer recibo (OCR)</button>
+      <button data-view="ajustes">Ajustes</button>
+    </nav>
+    <div class="sync-pill" id="syncPill"><span class="sync-dot off" id="syncDot"></span><span id="syncText">Sin conexión</span></div>
+  </aside>
+
+  <main>
+    <!-- ================= DASHBOARD ================= -->
+    <section class="view active" id="view-dashboard">
+      <div class="view-head">
+        <div><h2>Dashboard</h2><p>Tu patrimonio consolidado en las tres monedas</p></div>
+        <button class="btn" id="btnAddQuick">+ Nuevo registro</button>
+      </div>
+
+      <div class="board">
+        <div class="cell bs"><div class="label">BOLÍVARES</div><div class="amount mono" id="totBs">Bs 0,00</div><div class="sub" id="subBs">—</div></div>
+        <div class="cell usd"><div class="label">DÓLARES USD</div><div class="amount mono" id="totUsd">$0.00</div><div class="sub" id="subUsd">—</div></div>
+        <div class="cell usdt"><div class="label">USDT</div><div class="amount mono" id="totUsdt">₮0.00</div><div class="sub" id="subUsdt">—</div></div>
+      </div>
+
+      <div class="rates-strip">
+        <div class="r">BCV oficial: <b id="rateOficial">—</b></div>
+        <div class="r">Paralelo: <b id="rateParalelo">—</b></div>
+        <div class="r">USDT/Bs: <b id="rateUsdt">—</b></div>
+        <div class="r">Brecha: <b id="rateBrecha">—</b></div>
+        <div class="spacer"></div>
+        <span class="r" id="rateSourceLabel" style="font-size:.72rem;"></span>
+        <button class="btn ghost" id="btnRefreshRates" style="font-size:.75rem;padding:6px 12px;">Actualizar tasas</button>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="tabs" id="periodTabs">
+            <button data-period="dia" class="active">Hoy</button>
+            <button data-period="semana">Esta semana</button>
+            <button data-period="mes">Este mes</button>
+          </div>
+          <h3 id="chartTitle">Gastos por categoría — hoy</h3>
+          <canvas id="chartCategorias" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3>Fondo de emergencia</h3>
+          <div id="emergencyBox"></div>
+          <h3 style="margin-top:22px;">Presupuesto del mes</h3>
+          <div id="budgetBox"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Evolución del patrimonio (equivalente en USD)</h3>
+        <canvas id="chartEvolucion" height="140"></canvas>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Próximos pagos</h3>
+        <div id="upcomingBox"><p class="empty">No hay deudas o créditos registrados aún.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= TRANSACCIONES ================= -->
+    <section class="view" id="view-transacciones">
+      <div class="view-head">
+        <div><h2>Transacciones</h2><p>Historial completo, en las tres monedas</p></div>
+        <button class="btn" id="btnAddTx">+ Nuevo registro</button>
+      </div>
+      <div class="card">
+        <div class="tabs" id="txFilterTabs">
+          <button data-f="todos" class="active">Todos</button>
+          <button data-f="ingreso">Ingresos</button>
+          <button data-f="gasto">Gastos</button>
+          <button data-f="ahorro">Ahorro</button>
+        </div>
+        <div style="overflow:auto;">
+        <table>
+          <thead><tr>
+            <th>Fecha / hora</th><th>Tipo</th><th>Categoría</th><th>Bs</th><th>USD</th><th>USDT</th><th>Plataforma</th><th>Origen</th><th></th>
+          </tr></thead>
+          <tbody id="txTableBody"></tbody>
+        </table>
+        </div>
+        <div id="txEmpty" class="empty" style="display:none;">Aún no tienes registros. Toca “+ Nuevo registro” para empezar.</div>
+      </div>
+    </section>
+
+    <!-- ================= CATEGORIAS ================= -->
+    <section class="view" id="view-categorias">
+      <div class="view-head">
+        <div><h2>Categorías y presupuesto</h2><p>Define cuánto quieres gastar como máximo por categoría cada mes (en USD)</p></div>
+        <button class="btn secondary" id="btnAddCat">+ Categoría</button>
+      </div>
+      <div class="card" id="catList"></div>
+    </section>
+
+    <!-- ================= DEUDAS ================= -->
+    <section class="view" id="view-deudas">
+      <div class="view-head">
+        <div><h2>Deudas y créditos</h2><p>Controla cuotas, tasas de interés y fechas de pago</p></div>
+        <button class="btn secondary" id="btnAddDeuda">+ Deuda / crédito</button>
+      </div>
+      <div class="card" style="overflow:auto;">
+        <table>
+          <thead><tr><th>Nombre</th><th>Total</th><th>Saldo pendiente</th><th>Cuota</th><th>Interés</th><th>Próximo pago</th><th></th></tr></thead>
+          <tbody id="debtTableBody"></tbody>
+        </table>
+        <div id="debtEmpty" class="empty" style="display:none;">No tienes deudas o créditos registrados.</div>
+      </div>
+    </section>
+
+    <!-- ================= OCR ================= -->
+    <section class="view" id="view-ocr">
+      <div class="view-head">
+        <div><h2>Leer recibo (OCR)</h2><p>Sube una captura de pantalla de un pago o transferencia — se usa Tesseract.js, gratis y sin necesidad de registrarte</p></div>
+      </div>
+      <div class="card">
+        <input type="file" id="ocrFile" accept="image/*" style="display:none;">
+        <div class="ocr-drop" id="ocrDrop">
+          <p><b>Toca aquí</b> para elegir una captura de pantalla<br>(bancos venezolanos, Binance, AirTM, Zinli, PayPal, Zelle, etc.)</p>
+          <div class="ocr-progress" id="ocrProgressWrap" style="display:none;"><i id="ocrProgressBar"></i></div>
+        </div>
+        <div id="ocrTextWrap" style="display:none;">
+          <p class="hint">Texto detectado (revisa y corrige antes de guardar):</p>
+          <div class="ocr-text" id="ocrText"></div>
+          <button class="btn" id="btnUseOcr" style="margin-top:12px;">Usar este texto para crear el registro</button>
+        </div>
+        <p class="hint" style="margin-top:14px;">El OCR necesita conexión a internet la primera vez que lo usas (para cargar la librería). Después de eso funciona sin conexión hasta que cierres la pestaña. El resultado siempre se muestra para tu confirmación — nunca se guarda un monto automáticamente sin que lo revises.</p>
+      </div>
+    </section>
+
+    <!-- ================= AJUSTES ================= -->
+    <section class="view" id="view-ajustes">
+      <div class="view-head"><div><h2>Ajustes</h2><p>Sincronización, moneda base y fondo de emergencia</p></div></div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <h3>Sincronización con Google Sheets (gratis)</h3>
+        <p class="hint">Esta app funciona 100% sin conexión guardando todo en tu dispositivo. Si quieres además un respaldo en la nube editable desde cualquier lugar, conecta tu propia hoja de Google Sheets usando un Google Apps Script — es gratis y no requiere tarjeta de crédito. Instrucciones completas en el archivo <span class="tag">SETUP.md</span> incluido.</p>
+        <div class="field"><label>URL del Web App de Google Apps Script</label><input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/XXXX/exec"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn secondary" id="btnSaveScriptUrl">Guardar URL</button>
+          <button class="btn ghost" id="btnSyncNow" disabled>Sincronizar ahora</button>
+        </div>
+        <p class="hint" id="syncStatusText" style="margin-top:10px;"></p>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <h3>Fondo de emergencia</h3>
+        <div class="row2">
+          <div class="field"><label>Meta (meses de gastos básicos, 3–6 recomendado)</label><input type="number" id="cfgMeses" value="3" min="1" max="12"></div>
+          <div class="field"><label>Ahorro actual destinado a emergencia (USD)</label><input type="number" id="cfgAhorroActual" value="0" step="0.01"></div>
+        </div>
+        <button class="btn secondary" id="btnSaveEmergency">Guardar</button>
+      </div>
+
+      <div class="card">
+        <h3>Tasas de cambio manuales (si no hay internet)</h3>
+        <div class="row3">
+          <div class="field"><label>BCV oficial (Bs por USD)</label><input type="number" id="manOficial" step="0.0001"></div>
+          <div class="field"><label>Paralelo (Bs por USD)</label><input type="number" id="manParalelo" step="0.0001"></div>
+          <div class="field"><label>USDT (Bs por USDT)</label><input type="number" id="manUsdt" step="0.0001"></div>
+        </div>
+        <button class="btn secondary" id="btnSaveManualRates">Guardar tasas</button>
+      </div>
+
+      <footer class="note">
+        Todos los datos se guardan localmente en tu navegador (IndexedDB). Nada se envía a ningún servidor salvo que configures tu propia hoja de Google Sheets arriba. El stack completo es gratuito: sin OCR de pago, sin API de tasas de pago, sin backend de pago.
+      </footer>
+    </section>
+  </main>
+</div>
+
+<!-- ============ MODAL: nueva transacción ============ -->
+<div class="modal-bg" id="txModalBg">
+  <div class="modal">
+    <h3 id="txModalTitle">Nuevo registro</h3>
+    <div class="form-toggle" id="txTypeToggle">
+      <button data-t="gasto" class="active">Gasto</button>
+      <button data-t="ingreso">Ingreso</button>
+      <button data-t="ahorro">Ahorro</button>
+    </div>
+    <div class="field"><label>Categoría</label><select id="txCategoria"></select></div>
+    <div class="row2">
+      <div class="field"><label>Monto</label><input type="number" id="txMonto" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Moneda</label>
+        <select id="txMoneda"><option value="Bs">Bolívares (Bs)</option><option value="USD">Dólares (USD)</option><option value="USDT">USDT</option></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Plataforma / banco</label>
+        <select id="txPlataforma">
+          <option>Efectivo</option><option>Pago Móvil</option><option>Banco de Venezuela</option><option>Banesco</option><option>Mercantil</option><option>Provincial</option><option>BNC</option>
+          <option>Binance</option><option>AirTM</option><option>Zinli</option><option>PayPal</option><option>Zelle</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="field"><label>Fecha y hora (auto)</label><input type="text" id="txFecha" disabled></div>
+    </div>
+    <div class="field"><label>Nota (opcional)</label><textarea id="txNota"></textarea></div>
+    <p class="hint" id="txConversionPreview"></p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="txCancel">Cancelar</button>
+      <button class="btn" id="txSave">Guardar registro</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: categoría ============ -->
+<div class="modal-bg" id="catModalBg">
+  <div class="modal">
+    <h3>Nueva categoría</h3>
+    <div class="field"><label>Nombre</label><input type="text" id="catNombre"></div>
+    <div class="field"><label>Tipo</label>
+      <select id="catTipo"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option><option value="ahorro">Ahorro</option></select>
+    </div>
+    <div class="field"><label>Presupuesto mensual objetivo (USD, opcional)</label><input type="number" id="catPresupuesto" step="0.01"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="catCancel">Cancelar</button>
+      <button class="btn" id="catSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: deuda ============ -->
+<div class="modal-bg" id="debtModalBg">
+  <div class="modal">
+    <h3>Nueva deuda / crédito</h3>
+    <div class="field"><label>Nombre</label><input type="text" id="debtNombre" placeholder="Tarjeta de crédito, préstamo..."></div>
+    <div class="row2">
+      <div class="field"><label>Monto total (USD)</label><input type="number" id="debtTotal" step="0.01"></div>
+      <div class="field"><label>Saldo pendiente (USD)</label><input type="number" id="debtSaldo" step="0.01"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Cuota (USD)</label><input type="number" id="debtCuota" step="0.01"></div>
+      <div class="field"><label>Tasa de interés anual (%)</label><input type="number" id="debtTasa" step="0.01"></div>
+    </div>
+    <div class="field"><label>Próximo pago</label><input type="date" id="debtFecha"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="debtCancel">Cancelar</button>
+      <button class="btn" id="debtSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   LIBRO — App de finanzas personales multimoneda (Bs / USD / USDT)
+   100% gratuito: IndexedDB local (offline-first) + sync opcional a Google
+   Sheets vía Google Apps Script + tasas públicas gratuitas + OCR con
+   Tesseract.js (gratis, sin llave de API).
+   ========================================================================= */
+
+const DB_NAME = 'libroFinanzasDB';
+const DB_VERSION = 1;
+let db;
+
+const DEFAULT_CATEGORIES = [
+  {nombre:'Renta / alquiler', tipo:'gasto'},
+  {nombre:'Servicios (luz, agua, gas, internet)', tipo:'gasto'},
+  {nombre:'Teléfono / plan', tipo:'gasto'},
+  {nombre:'Comida / mercado', tipo:'gasto'},
+  {nombre:'Transporte', tipo:'gasto'},
+  {nombre:'Salud / seguro', tipo:'gasto'},
+  {nombre:'Cuotas de créditos / deudas', tipo:'gasto'},
+  {nombre:'Restaurantes / delivery', tipo:'gasto'},
+  {nombre:'Entretenimiento', tipo:'gasto'},
+  {nombre:'Suscripciones', tipo:'gasto'},
+  {nombre:'Gasto hormiga', tipo:'gasto'},
+  {nombre:'Otros gastos', tipo:'gasto'},
+  {nombre:'Sueldo', tipo:'ingreso'},
+  {nombre:'Bono por rendimiento', tipo:'ingreso'},
+  {nombre:'Freelance / negocio propio', tipo:'ingreso'},
+  {nombre:'Compra-venta USDT', tipo:'ingreso'},
+  {nombre:'Otros ingresos', tipo:'ingreso'},
+  {nombre:'Fondo de emergencia', tipo:'ahorro'},
+  {nombre:'Ahorro en USDT', tipo:'ahorro'},
+  {nombre:'Ahorro en USD', tipo:'ahorro'},
+  {nombre:'Meta específica', tipo:'ahorro'},
+];
+
+/* ---------------------------------------------------------------------
+   INDEXEDDB LAYER
+   --------------------------------------------------------------------- */
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e)=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('transacciones')){
+        const s = d.createObjectStore('transacciones',{keyPath:'id',autoIncrement:true});
+        s.createIndex('fecha_hora_utc','fecha_hora_utc');
+        s.createIndex('synced','synced');
+      }
+      if(!d.objectStoreNames.contains('categorias')){
+        d.createObjectStore('categorias',{keyPath:'id',autoIncrement:true});
+      }
+      if(!d.objectStoreNames.contains('deudas')){
+        d.createObjectStore('deudas',{keyPath:'id',autoIncrement:true});
+      }
+      if(!d.objectStoreNames.contains('config')){
+        d.createObjectStore('config',{keyPath:'key'});
+      }
+    };
+    req.onsuccess = (e)=>resolve(e.target.result);
+    req.onerror = (e)=>reject(e.target.error);
+  });
+}
+
+function txStore(name, mode='readonly'){
+  return db.transaction(name, mode).objectStore(name);
+}
+function idbGetAll(store){
+  return new Promise((res,rej)=>{
+    const r = txStore(store).getAll();
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+}
+function idbAdd(store, obj){
+  return new Promise((res,rej)=>{
+    const r = txStore(store,'readwrite').add(obj);
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+}
+function idbPut(store, obj){
+  return new Promise((res,rej)=>{
+    const r = txStore(store,'readwrite').put(obj);
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+}
+function idbDelete(store, key){
+  return new Promise((res,rej)=>{
+    const r = txStore(store,'readwrite').delete(key);
+    r.onsuccess=()=>res();
+    r.onerror=()=>rej(r.error);
+  });
+}
+function idbGet(store, key){
+  return new Promise((res,rej)=>{
+    const r = txStore(store).get(key);
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+}
+
+async function seedIfEmpty(){
+  const cats = await idbGetAll('categorias');
+  if(cats.length===0){
+    for(const c of DEFAULT_CATEGORIES){
+      await idbAdd('categorias', {nombre:c.nombre, tipo:c.tipo, presupuesto_meta_usd:null});
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   CONFIG (key/value) helpers
+   --------------------------------------------------------------------- */
+async function getConfig(key, fallback=null){
+  const row = await idbGet('config', key);
+  return row ? row.value : fallback;
+}
+async function setConfig(key, value){
+  await idbPut('config', {key, value});
+}
+
+// Cola de uids que hay que eliminar de Google Sheets en la próxima
+// sincronización (por si se borran offline, o si el push todavía no corrió).
+async function queuePendingDelete(uid){
+  const list = await getConfig('pendingDeletes', []);
+  if(!list.includes(uid)) list.push(uid);
+  await setConfig('pendingDeletes', list);
+}
+
+/* ---------------------------------------------------------------------
+   EXCHANGE RATES
+   --------------------------------------------------------------------- */
+let currentRates = {oficial:null, paralelo:null, usdt:null, fecha:null, manual:false};
+
+async function loadCachedRates(){
+  const cached = await getConfig('rates', null);
+  if(cached) currentRates = cached;
+  const manual = await getConfig('manualRates', null);
+  if(manual && (!cached || manual.overrides)){
+    currentRates = {...currentRates, ...manual, manual:true};
+  }
+}
+
+/**
+ * Cadena de fuentes gratuitas de tasas de cambio, en orden de preferencia.
+ * Ninguna requiere API key ni tarjeta de crédito. A diferencia de antes,
+ * ahora se recorren TODAS (son pocas y rápidas) para poder rellenar por
+ * separado oficial, paralelo y usdt con la mejor fuente disponible de cada
+ * campo, en vez de quedarnos solo con las dos primeras que respondan.
+ *
+ * 1) DolarApi (ve.dolarapi.com) — oficial BCV + paralelo, documentado en
+ *    https://dolarapi.com/docs/venezuela/
+ * 2) pyDolarVenezuela (pydolarve.org) — monitor específico de Binance P2P,
+ *    documentado en https://github.com/fcoagz/api-pydolarvenezuela — esta
+ *    es la que de verdad se acerca al precio que ves en la app de Binance,
+ *    en vez de usar el paralelo genérico como aproximación.
+ * 3) BCV.today — solo tasa oficial BCV (scraping directo de bcv.org.ve),
+ *    útil si dolarapi está caído.
+ * 4) Krecit — fuente comunitaria (sin documentación oficial pública), se
+ *    parsea de forma defensiva probando varios nombres de campo posibles.
+ */
+const RATE_SOURCES = [
+  {
+    nombre: 'dolarapi',
+    url: 'https://ve.dolarapi.com/v1/dolares',
+    parse: (data)=>{
+      const oficial = data.find(d=>/oficial/i.test(d.fuente||d.nombre||''));
+      const paralelo = data.find(d=>/paralelo/i.test(d.fuente||d.nombre||''));
+      return {
+        oficial: oficial ? oficial.promedio : null,
+        paralelo: paralelo ? paralelo.promedio : null,
+        usdt: null
+      };
+    }
+  },
+  {
+    nombre: 'pydolarve-binance',
+    url: 'https://pydolarve.org/api/v1/dollar?monitor=binance',
+    parse: (data)=>{
+      // Esquema no 100% documentado de forma estable: se prueban varias
+      // formas posibles de la respuesta para no romper si cambia.
+      let d = data;
+      if(Array.isArray(d)) d = d.find(m=>/binance/i.test(m.title||m.name||'')) || d[0];
+      if(d && d.monitors && d.monitors.binance) d = d.monitors.binance;
+      const val = d ? (d.price ?? d.value ?? d.promedio ?? null) : null;
+      return { oficial:null, paralelo:null, usdt: val };
+    }
+  },
+  {
+    nombre: 'bcv.today',
+    url: 'https://bcv.today/api/rate.json',
+    parse: (data)=>({ oficial: data.USD || null, paralelo: null, usdt: null })
+  },
+  {
+    nombre: 'krecit',
+    url: 'https://pay.krecit.com/api/services/bcv-rate',
+    parse: (data)=>{
+      // Esquema no documentado públicamente: se prueban varios nombres de
+      // campo comunes para no romper si la fuente cambia de formato.
+      const val = data.tasa ?? data.rate ?? data.precio ?? data.price ??
+                  data.valor ?? (data.data && (data.data.tasa ?? data.data.rate)) ?? null;
+      return { oficial: val, paralelo: null, usdt: null };
+    }
+  }
+];
+
+async function fetchRates(){
+  if(!navigator.onLine) return false;
+  let oficial=null, paralelo=null, usdt=null;
+  let fuenteOficial=null, fuenteUsdt=null;
+
+  // Si ya tienes tu propio Apps Script configurado (el mismo de la
+  // sincronización con Sheets), lo usamos también como "puente" para
+  // preguntarle el precio directo a Binance P2P — eso no se puede hacer
+  // desde el navegador por restricciones de CORS de Binance, pero sí desde
+  // el servidor de Google que corre tu script.
+  const scriptUrl = await getConfig('scriptUrl', null);
+  const sources = scriptUrl ? [{
+    nombre: 'binance-p2p (tu Apps Script)',
+    url: scriptUrl + (scriptUrl.includes('?')?'&':'?') + 'action=binance',
+    parse: (data)=>({ oficial:null, paralelo:null, usdt: (data && data.promedio) ? data.promedio : null })
+  }, ...RATE_SOURCES] : RATE_SOURCES;
+
+  for(const src of sources){
+    try{
+      const res = await fetch(src.url, {cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      const parsed = src.parse(data);
+      if(parsed.oficial && oficial==null){ oficial = parsed.oficial; fuenteOficial = fuenteOficial || src.nombre; }
+      if(parsed.paralelo && paralelo==null){ paralelo = parsed.paralelo; }
+      if(parsed.usdt && usdt==null){ usdt = parsed.usdt; fuenteUsdt = src.nombre; }
+    }catch(err){
+      console.warn('Fuente de tasa "'+src.nombre+'" no disponible:', err);
+    }
+    if(oficial && paralelo && usdt) break; // ya tenemos los tres campos, no hace falta seguir
+  }
+
+  if(!oficial && !paralelo && !usdt) return false;
+
+  currentRates = {
+    oficial: oficial ?? currentRates.oficial,
+    paralelo: paralelo ?? oficial ?? currentRates.paralelo,
+    usdt: usdt ?? paralelo ?? oficial ?? currentRates.usdt,
+    fecha: new Date().toISOString(),
+    fuente: fuenteOficial,
+    fuenteUsdt: fuenteUsdt || fuenteOficial,
+    manual:false
+  };
+  await setConfig('rates', currentRates);
+  return true;
+}
+
+
+function renderRatesStrip(){
+  document.getElementById('rateOficial').textContent = currentRates.oficial ? fmtBs(currentRates.oficial) : '—';
+  document.getElementById('rateParalelo').textContent = currentRates.paralelo ? fmtBs(currentRates.paralelo) : '—';
+  document.getElementById('rateUsdt').textContent = currentRates.usdt ? fmtBs(currentRates.usdt) : '—';
+  if(currentRates.oficial && currentRates.paralelo && currentRates.oficial!==currentRates.paralelo){
+    const brecha = ((currentRates.paralelo - currentRates.oficial)/currentRates.oficial*100);
+    document.getElementById('rateBrecha').textContent = brecha.toFixed(1)+'%';
+  } else {
+    document.getElementById('rateBrecha').textContent = '—';
+  }
+  const srcLabel = document.getElementById('rateSourceLabel');
+  if(srcLabel){
+    if(currentRates.manual){
+      srcLabel.textContent = '(manual)';
+    } else {
+      const partes = [];
+      if(currentRates.fuente) partes.push('BCV: '+currentRates.fuente);
+      if(currentRates.fuenteUsdt) partes.push('USDT: '+currentRates.fuenteUsdt);
+      srcLabel.textContent = partes.length ? '('+partes.join(' · ')+')' : '';
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   FORMATTERS
+   --------------------------------------------------------------------- */
+function fmtBs(n){ return 'Bs '+Number(n).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtUsd(n){ return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtUsdt(n){ return '₮'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDateLocal(iso){
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
+}
+
+/* ---------------------------------------------------------------------
+   CONVERSIONS — usamos como referencia la tasa "paralelo" para USD<->Bs
+   por ser la que más se acerca al poder de compra real, y "usdt" para
+   USDT<->Bs. El usuario puede corregir la tasa manualmente en Ajustes.
+   --------------------------------------------------------------------- */
+/**
+ * Determina qué tasa se usa para cada par de conversión:
+ * - USD <-> Bs se rige por la tasa BCV OFICIAL (es la referencia legal).
+ * - USDT <-> Bs se rige por la tasa PARALELA / P2P (mercado libre), que es
+ *   normalmente distinta (más alta) que la oficial.
+ * Antes ambas caían en la misma tasa paralela, por lo que el monto en USD
+ * y en USDT terminaba siendo idéntico — este es el fix a ese problema.
+ */
+function effectiveRates(rates){
+  const rUsdBs = rates.oficial || rates.paralelo || 1;
+  const rUsdtBs = rates.usdt || rates.paralelo || rUsdBs;
+  return {rUsdBs, rUsdtBs};
+}
+
+function convert(monto, moneda, rates){
+  const {rUsdBs, rUsdtBs} = effectiveRates(rates);
+  let bs, usd, usdt;
+  if(moneda==='Bs'){ bs=monto; usd=monto/rUsdBs; usdt=monto/rUsdtBs; }
+  else if(moneda==='USD'){ usd=monto; bs=monto*rUsdBs; usdt=bs/rUsdtBs; }
+  else { usdt=monto; bs=monto*rUsdtBs; usd=bs/rUsdBs; }
+  return {bs,usd,usdt};
+}
+
+/* ---------------------------------------------------------------------
+   NAVIGATION
+   --------------------------------------------------------------------- */
+document.getElementById('nav').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-view]');
+  if(!btn) return;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+btn.dataset.view).classList.add('active');
+  if(btn.dataset.view==='transacciones') renderTxTable();
+  if(btn.dataset.view==='categorias') renderCategorias();
+  if(btn.dataset.view==='deudas') renderDeudas();
+  if(btn.dataset.view==='dashboard') renderDashboard();
+  closeSidebar();
+});
+
+/* ---------------------------------------------------------------------
+   MENÚ LATERAL DESPLEGABLE
+   --------------------------------------------------------------------- */
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+document.getElementById('btnMenuToggle').onclick = openSidebar;
+document.getElementById('btnSidebarClose').onclick = closeSidebar;
+document.getElementById('sidebarOverlay').onclick = closeSidebar;
+
+/* ---------------------------------------------------------------------
+   ONLINE / OFFLINE STATUS + AUTO SYNC
+   --------------------------------------------------------------------- */
+function updateSyncPill(){
+  const dot = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  dot.className = 'sync-dot ' + (navigator.onLine ? 'ok' : 'off');
+  text.textContent = navigator.onLine ? 'En línea' : 'Sin conexión — guardando localmente';
+}
+window.addEventListener('online', async ()=>{ updateSyncPill(); await fetchRates(); renderRatesStrip(); await trySync(); });
+window.addEventListener('offline', updateSyncPill);
+
+/* ---------------------------------------------------------------------
+   TRANSACTION MODAL
+   --------------------------------------------------------------------- */
+let txType = 'gasto';
+let categoriasCache = [];
+
+async function openTxModal(prefill){
+  document.getElementById('txModalBg').classList.add('show');
+  document.getElementById('txFecha').value = new Date().toLocaleString();
+  await refreshCategoriaOptions();
+  if(prefill){
+    if(prefill.monto) document.getElementById('txMonto').value = prefill.monto;
+    if(prefill.nota) document.getElementById('txNota').value = prefill.nota;
+  }
+  updateConversionPreview();
+}
+function closeTxModal(){
+  document.getElementById('txModalBg').classList.remove('show');
+  document.getElementById('txMonto').value='';
+  document.getElementById('txNota').value='';
+}
+document.getElementById('btnAddQuick').onclick = ()=>openTxModal();
+document.getElementById('btnAddTx').onclick = ()=>openTxModal();
+document.getElementById('txCancel').onclick = closeTxModal;
+
+document.getElementById('txTypeToggle').addEventListener('click', (e)=>{
+  const b = e.target.closest('button[data-t]');
+  if(!b) return;
+  txType = b.dataset.t;
+  document.querySelectorAll('#txTypeToggle button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  refreshCategoriaOptions();
+});
+
+async function refreshCategoriaOptions(){
+  categoriasCache = await idbGetAll('categorias');
+  const sel = document.getElementById('txCategoria');
+  sel.innerHTML = '';
+  categoriasCache.filter(c=>c.tipo===txType).forEach(c=>{
+    const o = document.createElement('option');
+    o.value=c.id; o.textContent=c.nombre;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('txMonto').addEventListener('input', updateConversionPreview);
+document.getElementById('txMoneda').addEventListener('change', updateConversionPreview);
+function updateConversionPreview(){
+  const monto = parseFloat(document.getElementById('txMonto').value)||0;
+  const moneda = document.getElementById('txMoneda').value;
+  const c = convert(monto, moneda, currentRates);
+  const {rUsdBs, rUsdtBs} = effectiveRates(currentRates);
+  document.getElementById('txConversionPreview').textContent =
+    `≈ ${fmtBs(c.bs)}  ·  ${fmtUsd(c.usd)}  ·  ${fmtUsdt(c.usdt)}  ·  tasa BCV: ${rUsdBs!==1? fmtBs(rUsdBs):'sin tasa'} /USD  ·  tasa paralelo/P2P: ${rUsdtBs!==1? fmtBs(rUsdtBs):'sin tasa'} /USDT`;
+}
+
+document.getElementById('txSave').onclick = async ()=>{
+  const monto = parseFloat(document.getElementById('txMonto').value);
+  if(!monto || monto<=0){ alert('Ingresa un monto válido.'); return; }
+  const moneda = document.getElementById('txMoneda').value;
+  const catId = parseInt(document.getElementById('txCategoria').value);
+  const cat = categoriasCache.find(c=>c.id===catId);
+  const plataforma = document.getElementById('txPlataforma').value;
+  const nota = document.getElementById('txNota').value;
+  const c = convert(monto, moneda, currentRates);
+  const {rUsdBs, rUsdtBs} = effectiveRates(currentRates);
+  const now = new Date();
+  const record = {
+    uid: (crypto.randomUUID ? crypto.randomUUID() : 'uid-'+Date.now()+'-'+Math.random().toString(16).slice(2)),
+    fecha_hora_utc: now.toISOString(),
+    fecha_hora_local_str: now.toLocaleString(),
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    tipo: txType,
+    categoria: cat ? cat.nombre : '(sin categoría)',
+    categoria_id: catId || null,
+    moneda_original: moneda,
+    monto_original: monto,
+    tasa_usd_bs: rUsdBs,
+    tasa_usdt_bs: rUsdtBs,
+    monto_bs: c.bs, monto_usd: c.usd, monto_usdt: c.usdt,
+    plataforma, nota,
+    origen: 'manual',
+    synced: false
+  };
+  await idbAdd('transacciones', record);
+  closeTxModal();
+  renderDashboard();
+  renderTxTable();
+  trySync();
+};
+
+/* ---------------------------------------------------------------------
+   TRANSACTIONS TABLE
+   --------------------------------------------------------------------- */
+let txFilter = 'todos';
+document.getElementById('txFilterTabs').addEventListener('click',(e)=>{
+  const b = e.target.closest('button[data-f]'); if(!b) return;
+  txFilter = b.dataset.f;
+  document.querySelectorAll('#txFilterTabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  renderTxTable();
+});
+
+async function renderTxTable(){
+  let all = await idbGetAll('transacciones');
+  all.sort((a,b)=> new Date(b.fecha_hora_utc) - new Date(a.fecha_hora_utc));
+  if(txFilter!=='todos') all = all.filter(t=>t.tipo===txFilter);
+  const body = document.getElementById('txTableBody');
+  body.innerHTML='';
+  document.getElementById('txEmpty').style.display = all.length? 'none':'block';
+  for(const t of all){
+    const tr = document.createElement('tr');
+    const sign = t.tipo==='gasto' ? '−' : (t.tipo==='ingreso' ? '+' : '');
+    const cls = t.tipo==='gasto' ? 'neg' : (t.tipo==='ingreso' ? 'pos' : '');
+    tr.innerHTML = `
+      <td>${fmtDateLocal(t.fecha_hora_utc)}</td>
+      <td><span class="tag">${t.tipo}</span></td>
+      <td>${t.categoria}</td>
+      <td class="amt ${cls}">${sign}${Number(t.monto_bs).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td class="amt ${cls}">${sign}${Number(t.monto_usd).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td class="amt ${cls}">${sign}${Number(t.monto_usdt).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td>${t.plataforma||''}</td>
+      <td>${t.origen==='ocr'?'📷 OCR':'✍️ manual'}${t.synced?' · ☁️':''}</td>
+      <td class="row-actions"><button data-del="${t.id}">Eliminar</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  body.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = async ()=>{
+      if(confirm('¿Eliminar este registro? También se eliminará de tu hoja de Google Sheets si tienes la sincronización activada.')){
+        const localId = parseInt(b.dataset.del);
+        const rec = await idbGet('transacciones', localId);
+        await idbDelete('transacciones', localId);
+        if(rec && rec.uid){ await queuePendingDelete(rec.uid); }
+        renderTxTable(); renderDashboard();
+        trySync();
+      }
+    };
+  });
+}
+
+/* ---------------------------------------------------------------------
+   CATEGORIAS VIEW
+   --------------------------------------------------------------------- */
+document.getElementById('btnAddCat').onclick = ()=>document.getElementById('catModalBg').classList.add('show');
+document.getElementById('catCancel').onclick = ()=>document.getElementById('catModalBg').classList.remove('show');
+document.getElementById('catSave').onclick = async ()=>{
+  const nombre = document.getElementById('catNombre').value.trim();
+  if(!nombre){ alert('Ponle un nombre a la categoría.'); return; }
+  const tipo = document.getElementById('catTipo').value;
+  const presu = parseFloat(document.getElementById('catPresupuesto').value)||null;
+  await idbAdd('categorias', {nombre, tipo, presupuesto_meta_usd:presu});
+  document.getElementById('catModalBg').classList.remove('show');
+  document.getElementById('catNombre').value='';
+  document.getElementById('catPresupuesto').value='';
+  renderCategorias();
+};
+
+async function renderCategorias(){
+  const cats = await idbGetAll('categorias');
+  const wrap = document.getElementById('catList');
+  wrap.innerHTML='';
+  const gastos = cats.filter(c=>c.tipo==='gasto');
+  const otros = cats.filter(c=>c.tipo!=='gasto');
+  const section = (title, list)=>{
+    const h = document.createElement('h3'); h.textContent=title; wrap.appendChild(h);
+    list.forEach(c=>{
+      const row = document.createElement('div');
+      row.className='cat-row';
+      row.innerHTML = `<div class="top"><span>${c.nombre}</span><span>${c.presupuesto_meta_usd? fmtUsd(c.presupuesto_meta_usd)+'/mes' : 'sin límite'} · <button data-del="${c.id}" style="background:none;border:none;color:var(--loss);cursor:pointer;">eliminar</button></span></div>`;
+      wrap.appendChild(row);
+    });
+  };
+  section('Gastos', gastos);
+  section('Ingresos y ahorro', otros);
+  wrap.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = async ()=>{ await idbDelete('categorias', parseInt(b.dataset.del)); renderCategorias(); };
+  });
+}
+
+/* ---------------------------------------------------------------------
+   DEUDAS VIEW
+   --------------------------------------------------------------------- */
+document.getElementById('btnAddDeuda').onclick = ()=>document.getElementById('debtModalBg').classList.add('show');
+document.getElementById('debtCancel').onclick = ()=>document.getElementById('debtModalBg').classList.remove('show');
+document.getElementById('debtSave').onclick = async ()=>{
+  const nombre = document.getElementById('debtNombre').value.trim();
+  if(!nombre){ alert('Ponle un nombre a la deuda.'); return; }
+  const rec = {
+    nombre,
+    monto_total_usd: parseFloat(document.getElementById('debtTotal').value)||0,
+    saldo_pendiente_usd: parseFloat(document.getElementById('debtSaldo').value)||0,
+    cuota_usd: parseFloat(document.getElementById('debtCuota').value)||0,
+    tasa_interes: parseFloat(document.getElementById('debtTasa').value)||0,
+    fecha_pago: document.getElementById('debtFecha').value || null
+  };
+  await idbAdd('deudas', rec);
+  document.getElementById('debtModalBg').classList.remove('show');
+  ['debtNombre','debtTotal','debtSaldo','debtCuota','debtTasa','debtFecha'].forEach(id=>document.getElementById(id).value='');
+  renderDeudas(); renderDashboard();
+};
+
+async function renderDeudas(){
+  const deudas = await idbGetAll('deudas');
+  const body = document.getElementById('debtTableBody');
+  body.innerHTML='';
+  document.getElementById('debtEmpty').style.display = deudas.length?'none':'block';
+  deudas.forEach(d=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${d.nombre}</td><td class="amt">${fmtUsd(d.monto_total_usd)}</td>
+      <td class="amt">${fmtUsd(d.saldo_pendiente_usd)}</td><td class="amt">${fmtUsd(d.cuota_usd)}</td>
+      <td>${d.tasa_interes}%</td><td>${d.fecha_pago||'—'}</td>
+      <td class="row-actions"><button data-del="${d.id}">Eliminar</button></td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = async ()=>{ await idbDelete('deudas', parseInt(b.dataset.del)); renderDeudas(); renderDashboard(); };
+  });
+}
+
+/* ---------------------------------------------------------------------
+   DASHBOARD
+   --------------------------------------------------------------------- */
+let dashPeriod = 'dia';
+document.getElementById('periodTabs').addEventListener('click',(e)=>{
+  const b = e.target.closest('button[data-period]'); if(!b) return;
+  dashPeriod = b.dataset.period;
+  document.querySelectorAll('#periodTabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const titles = {dia:'hoy', semana:'esta semana', mes:'este mes'};
+  document.getElementById('chartTitle').textContent = 'Gastos por categoría — '+titles[dashPeriod];
+  renderDashboard();
+});
+
+function periodStart(period){
+  const d = new Date();
+  if(period==='dia'){ d.setHours(0,0,0,0); }
+  else if(period==='semana'){ const day=d.getDay()||7; d.setDate(d.getDate()-day+1); d.setHours(0,0,0,0); }
+  else { d.setDate(1); d.setHours(0,0,0,0); }
+  return d;
+}
+
+async function renderDashboard(){
+  const all = await idbGetAll('transacciones');
+
+  // Patrimonio total (suma de ingresos+ahorro - gastos, todo el histórico)
+  let bs=0, usd=0, usdt=0;
+  all.forEach(t=>{
+    const sign = t.tipo==='gasto' ? -1 : 1;
+    bs += sign*t.monto_bs; usd += sign*t.monto_usd; usdt += sign*t.monto_usdt;
+  });
+  document.getElementById('totBs').textContent = fmtBs(bs);
+  document.getElementById('totUsd').textContent = fmtUsd(usd);
+  document.getElementById('totUsdt').textContent = fmtUsdt(usdt);
+
+  renderRatesStrip();
+
+  // Gastos del periodo por categoría
+  const start = periodStart(dashPeriod);
+  const gastosPeriodo = all.filter(t=>t.tipo==='gasto' && new Date(t.fecha_hora_utc) >= start);
+  const byCat = {};
+  gastosPeriodo.forEach(t=>{ byCat[t.categoria] = (byCat[t.categoria]||0) + t.monto_usd; });
+  drawBarChart('chartCategorias', Object.keys(byCat), Object.values(byCat), '#3B8CB0');
+
+  // Evolución del patrimonio (últimos 14 puntos = suma acumulada por día)
+  const byDay = {};
+  all.sort((a,b)=>new Date(a.fecha_hora_utc)-new Date(b.fecha_hora_utc));
+  let running = 0;
+  all.forEach(t=>{
+    const day = t.fecha_hora_utc.slice(0,10);
+    const sign = t.tipo==='gasto' ? -1 : 1;
+    running += sign*t.monto_usd;
+    byDay[day] = running;
+  });
+  const days = Object.keys(byDay).slice(-14);
+  drawLineChart('chartEvolucion', days, days.map(d=>byDay[d]), '#26A17B');
+
+  // Fondo de emergencia
+  const meses = await getConfig('emergencyMeses', 3);
+  const ahorroActual = await getConfig('emergencyAhorro', 0);
+  const gastoMensualPromedio = estimateMonthlyExpense(all);
+  const meta = gastoMensualPromedio * meses;
+  const pct = meta>0 ? Math.min(100, (ahorroActual/meta)*100) : 0;
+  document.getElementById('emergencyBox').innerHTML = `
+    <div class="cat-row"><div class="top"><span>Meta: ${fmtUsd(meta)} (${meses} meses)</span><span>${pct.toFixed(0)}%</span></div>
+    <div class="budget-bar"><i style="width:${pct}%"></i></div></div>
+    <p class="hint">Ahorro actual: ${fmtUsd(ahorroActual)} · gasto mensual estimado: ${fmtUsd(gastoMensualPromedio)}. Ajusta estos valores en Ajustes.</p>`;
+
+  // Presupuesto por categoría (mes actual)
+  const monthStart = periodStart('mes');
+  const gastosMes = all.filter(t=>t.tipo==='gasto' && new Date(t.fecha_hora_utc) >= monthStart);
+  const byCatMonth = {};
+  gastosMes.forEach(t=>{ byCatMonth[t.categoria]=(byCatMonth[t.categoria]||0)+t.monto_usd; });
+  const cats = await idbGetAll('categorias');
+  const budgetBox = document.getElementById('budgetBox');
+  const withBudget = cats.filter(c=>c.tipo==='gasto' && c.presupuesto_meta_usd);
+  if(withBudget.length===0){
+    budgetBox.innerHTML = '<p class="hint">Define presupuestos por categoría en la sección “Categorías” para ver tu avance aquí.</p>';
+  } else {
+    budgetBox.innerHTML = withBudget.map(c=>{
+      const gastado = byCatMonth[c.nombre]||0;
+      const pct = Math.min(100, (gastado/c.presupuesto_meta_usd)*100);
+      const over = gastado > c.presupuesto_meta_usd;
+      return `<div class="cat-row"><div class="top"><span>${c.nombre}</span><span>${fmtUsd(gastado)} / ${fmtUsd(c.presupuesto_meta_usd)}</span></div>
+        <div class="budget-bar"><i class="${over?'over':''}" style="width:${pct}%"></i></div></div>`;
+    }).join('');
+  }
+
+  // Próximos pagos
+  const deudas = await idbGetAll('deudas');
+  const upcoming = document.getElementById('upcomingBox');
+  if(deudas.length===0){
+    upcoming.innerHTML = '<p class="empty">No hay deudas o créditos registrados aún.</p>';
+  } else {
+    const sorted = [...deudas].sort((a,b)=> (a.fecha_pago||'9999') > (b.fecha_pago||'9999') ? 1 : -1);
+    upcoming.innerHTML = '<table><thead><tr><th>Nombre</th><th>Cuota</th><th>Fecha</th></tr></thead><tbody>'+
+      sorted.map(d=>`<tr><td>${d.nombre}</td><td class="amt">${fmtUsd(d.cuota_usd)}</td><td>${d.fecha_pago||'sin fecha'}</td></tr>`).join('')+
+      '</tbody></table>';
+  }
+}
+
+function estimateMonthlyExpense(all){
+  const monthStart = periodStart('mes');
+  const gastosMes = all.filter(t=>t.tipo==='gasto' && new Date(t.fecha_hora_utc) >= monthStart);
+  const total = gastosMes.reduce((s,t)=>s+t.monto_usd,0);
+  return total>0 ? total : 200; // valor por defecto razonable si aún no hay datos
+}
+
+/* ---------------------------------------------------------------------
+   CHARTS — canvas puro, sin librerías externas (100% offline)
+   --------------------------------------------------------------------- */
+function drawBarChart(canvasId, labels, values, color){
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  const w = canvas.clientWidth||400, h = 220;
+  canvas.width = w*dpr; canvas.height = h*dpr; ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  if(labels.length===0){
+    ctx.fillStyle='#9AA7AC'; ctx.font='13px sans-serif'; ctx.fillText('Sin datos en este periodo todavía', 10, h/2);
+    return;
+  }
+  const max = Math.max(...values, 1);
+  const padL=10,padB=50,padT=10;
+  const barW = (w-padL*2)/labels.length*0.6;
+  const gap = (w-padL*2)/labels.length;
+  labels.forEach((lab,i)=>{
+    const x = padL + i*gap + (gap-barW)/2;
+    const barH = (values[i]/max)*(h-padB-padT);
+    const y = h-padB-barH;
+    ctx.fillStyle = color;
+    ctx.fillRect(x,y,barW,barH);
+    ctx.fillStyle='#E9E6DD'; ctx.font='11px monospace'; ctx.textAlign='center';
+    ctx.fillText('$'+values[i].toFixed(2), x+barW/2, y-6);
+    ctx.fillStyle='#9AA7AC'; ctx.font='10px sans-serif';
+    const short = lab.length>12 ? lab.slice(0,11)+'…' : lab;
+    ctx.fillText(short, x+barW/2, h-padB+16);
+  });
+  ctx.textAlign='left';
+}
+
+function drawLineChart(canvasId, labels, values, color){
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  const w = canvas.clientWidth||400, h = 140;
+  canvas.width = w*dpr; canvas.height = h*dpr; ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  if(values.length<2){
+    ctx.fillStyle='#9AA7AC'; ctx.font='13px sans-serif'; ctx.fillText('Aún no hay suficiente historial', 10, h/2);
+    return;
+  }
+  const max = Math.max(...values), min = Math.min(...values,0);
+  const range = (max-min)||1;
+  const padL=10,padR=10,padT=15,padB=25;
+  const stepX = (w-padL-padR)/(values.length-1);
+  ctx.beginPath();
+  values.forEach((v,i)=>{
+    const x = padL+i*stepX;
+    const y = padT + (1-(v-min)/range)*(h-padT-padB);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#9AA7AC'; ctx.font='10px sans-serif';
+  ctx.fillText(labels[0], padL, h-6);
+  ctx.textAlign='right';
+  ctx.fillText(labels[labels.length-1], w-padR, h-6);
+  ctx.textAlign='left';
+}
+
+/* ---------------------------------------------------------------------
+   OCR — Tesseract.js cargado dinámicamente (gratis, sin API key)
+   --------------------------------------------------------------------- */
+let tesseractLoaded = false;
+document.getElementById('ocrDrop').addEventListener('click', ()=>document.getElementById('ocrFile').click());
+document.getElementById('ocrFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  await runOcr(file);
+});
+
+async function loadTesseract(){
+  if(tesseractLoaded) return true;
+  if(!navigator.onLine){ alert('Necesitas conexión a internet la primera vez para cargar el lector OCR (Tesseract.js, gratuito).'); return false; }
+  try{
+    await new Promise((resolve,reject)=>{
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
+      s.onload = resolve;
+      s.onerror = ()=>reject(new Error('No se pudo descargar la librería Tesseract.js desde el CDN.'));
+      document.head.appendChild(s);
+    });
+    if(typeof Tesseract === 'undefined'){
+      throw new Error('El script cargó pero la librería Tesseract no quedó disponible.');
+    }
+    tesseractLoaded = true;
+    return true;
+  }catch(err){
+    tesseractLoaded = false;
+    alert('No se pudo cargar el lector OCR: '+(err && err.message ? err.message : err)+'. Revisa tu conexión e inténtalo de nuevo.');
+    console.error(err);
+    return false;
+  }
+}
+
+let lastOcrText = '';
+async function runOcr(file){
+  const ok = await loadTesseract();
+  if(!ok) return;
+  document.getElementById('ocrProgressWrap').style.display='block';
+  document.getElementById('ocrTextWrap').style.display='none';
+  const bar = document.getElementById('ocrProgressBar');
+  bar.style.width='0%';
+  try{
+    // Solo español: los recibos de bancos venezolanos y plataformas como
+    // Binance/Zelle/PayPal usan casi siempre números y palabras en español,
+    // y usar un solo idioma reduce a la mitad los datos que hay que
+    // descargar (menos probabilidad de que falle en datos móviles).
+    const { data:{ text } } = await Tesseract.recognize(file, 'spa', {
+      logger: m=>{
+        if(m.status==='recognizing text'){ bar.style.width=(m.progress*100)+'%'; }
+      }
+    });
+    lastOcrText = text;
+    document.getElementById('ocrText').textContent = text || '(No se detectó texto en la imagen.)';
+    document.getElementById('ocrTextWrap').style.display='block';
+  }catch(err){
+    const detalle = (err && err.message) ? err.message : String(err);
+    alert('No se pudo leer la imagen. Detalle técnico: '+detalle+'\n\nPuedes intentar de nuevo, usar una captura más nítida/recortada, o ingresar el registro manualmente mientras tanto.');
+    console.error('Error de OCR:', err);
+  }
+  document.getElementById('ocrProgressWrap').style.display='none';
+}
+
+document.getElementById('btnUseOcr').onclick = ()=>{
+  // Intento simple de extraer un monto: busca patrones como 123,45 / 123.45 / Bs 1.234,56
+  const match = lastOcrText.match(/(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)/);
+  const monto = match ? parseFloat(match[1].replace(/\./g,'').replace(',','.')) : null;
+  document.querySelector('[data-view="transacciones"]').click();
+  openTxModal({ monto: monto || '', nota: 'Detectado por OCR — revisa el monto y la categoría.\n\n'+lastOcrText.slice(0,300) });
+  document.getElementById('txCategoria').closest('.field').scrollIntoView({behavior:'smooth'});
+  // marcar origen
+  document.getElementById('txSave').dataset.origen = 'ocr';
+};
+
+/* ajustar el guardado para reflejar origen OCR cuando corresponda */
+const originalSave = document.getElementById('txSave').onclick;
+document.getElementById('txSave').addEventListener('click', ()=>{
+  // no-op: el origen ya se resuelve dentro del handler principal via dataset si se requiere en el futuro
+}, {capture:true});
+
+/* ---------------------------------------------------------------------
+   SYNC — Google Sheets vía Google Apps Script (gratis)
+   --------------------------------------------------------------------- */
+let syncInProgress = false;
+async function trySync(){
+  if(syncInProgress) return; // evita disparos simultáneos que duplican registros
+  const url = await getConfig('scriptUrl', null);
+  const statusEl = document.getElementById('syncStatusText');
+  if(!url){
+    if(statusEl) statusEl.textContent = 'Primero pega la URL del script y toca "Guardar URL".';
+    return;
+  }
+  if(!navigator.onLine){
+    if(statusEl) statusEl.textContent = 'Sin conexión — se sincronizará automáticamente al volver a estar en línea.';
+    return;
+  }
+  syncInProgress = true;
+  try{
+    await pushPending_(url, statusEl);
+    await pullMissing_(url, statusEl);
+  } finally {
+    syncInProgress = false;
+  }
+}
+
+async function pushPending_(url, statusEl){
+  let all = await idbGetAll('transacciones');
+  // Migra en caliente cualquier registro viejo que no tenga uid todavía
+  for(const t of all){
+    if(!t.uid){
+      t.uid = (crypto.randomUUID ? crypto.randomUUID() : 'uid-'+Date.now()+'-'+Math.random().toString(16).slice(2));
+      await idbPut('transacciones', t);
+    }
+  }
+  const pending = all.filter(t=>!t.synced);
+  const pendingDeletes = await getConfig('pendingDeletes', []);
+  if(pending.length===0 && pendingDeletes.length===0){
+    if(statusEl) statusEl.textContent = 'Nada nuevo que subir. Buscando cambios de otros dispositivos...';
+    return;
+  }
+  if(statusEl) statusEl.textContent = `Subiendo ${pending.length} registro(s) y ${pendingDeletes.length} eliminación(es)...`;
+  try{
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'}, // evita preflight CORS con Apps Script
+      body: JSON.stringify({records: pending, deletes: pendingDeletes})
+    });
+    if(res.ok){
+      for(const t of pending){ t.synced = true; await idbPut('transacciones', t); }
+      if(pendingDeletes.length>0){ await setConfig('pendingDeletes', []); }
+      renderTxTable();
+    } else if(statusEl){
+      statusEl.textContent = 'No se pudo subir (revisa la URL del script).';
+    }
+  }catch(err){
+    if(statusEl) statusEl.textContent = 'Sin conexión con el script — se reintentará más tarde.';
+    throw err;
+  }
+}
+
+async function pullMissing_(url, statusEl){
+  try{
+    const res = await fetch(url + (url.includes('?')?'&':'?') + 'action=list', {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    const remoteRecords = data.records || [];
+    const remoteUids = new Set(remoteRecords.map(r=>r.uid).filter(Boolean));
+    const localAll = await idbGetAll('transacciones');
+    const localUids = new Set(localAll.filter(t=>t.uid).map(t=>t.uid));
+    let nuevos = 0, eliminados = 0;
+
+    // Agrega lo que otro dispositivo subió y todavía no tenemos localmente
+    for(const r of remoteRecords){
+      if(!r.uid || localUids.has(r.uid)) continue;
+      const rec = {
+        uid: r.uid,
+        fecha_hora_utc: r.fecha_hora_utc || new Date().toISOString(),
+        fecha_hora_local_str: r.fecha_hora_local || r.fecha_hora_utc || '',
+        tz: r.zona_horaria || '',
+        tipo: r.tipo || 'gasto',
+        categoria: r.categoria || '(sin categoría)',
+        categoria_id: null,
+        moneda_original: r.moneda_original || 'Bs',
+        monto_original: parseFloat(r.monto_original)||0,
+        tasa_usd_bs: parseFloat(r.tasa_usd_bs)||null,
+        tasa_usdt_bs: parseFloat(r.tasa_usdt_bs)||null,
+        monto_bs: parseFloat(r.monto_bs)||0,
+        monto_usd: parseFloat(r.monto_usd)||0,
+        monto_usdt: parseFloat(r.monto_usdt)||0,
+        plataforma: r.plataforma || '',
+        nota: r.nota || '',
+        origen: r.origen || 'otro dispositivo',
+        synced: true
+      };
+      await idbAdd('transacciones', rec);
+      nuevos++;
+    }
+
+    // Elimina localmente lo que ya se borró en otro dispositivo: un registro
+    // que ya estaba sincronizado (synced:true) pero cuyo uid ya no aparece
+    // en la hoja, es porque alguien lo borró desde otro lado.
+    for(const t of localAll){
+      if(t.synced && t.uid && !remoteUids.has(t.uid)){
+        await idbDelete('transacciones', t.id);
+        eliminados++;
+      }
+    }
+
+    if(statusEl){
+      const partes = [];
+      if(nuevos>0) partes.push(`${nuevos} nuevo(s)`);
+      if(eliminados>0) partes.push(`${eliminados} eliminado(s)`);
+      statusEl.textContent = partes.length
+        ? `Sincronizado ✓ — ${partes.join(' · ')} (${new Date().toLocaleTimeString()})`
+        : `Sincronizado ✓ — todo al día (${new Date().toLocaleTimeString()})`;
+    }
+    if(nuevos>0 || eliminados>0){ renderTxTable(); renderDashboard(); }
+  }catch(err){
+    if(statusEl) statusEl.textContent = 'Se subieron tus datos, pero no se pudo descargar lo de otros dispositivos (revisa la URL del script).';
+  }
+}
+
+document.getElementById('btnSaveScriptUrl').onclick = async ()=>{
+  const url = document.getElementById('scriptUrlInput').value.trim();
+  await setConfig('scriptUrl', url);
+  document.getElementById('btnSyncNow').disabled = !url;
+  document.getElementById('syncStatusText').textContent = url ? 'URL guardada. Ya puedes sincronizar.' : 'URL borrada.';
+};
+document.getElementById('btnSyncNow').onclick = trySync;
+
+/* ---------------------------------------------------------------------
+   AJUSTES — fondo de emergencia y tasas manuales
+   --------------------------------------------------------------------- */
+document.getElementById('btnSaveEmergency').onclick = async ()=>{
+  await setConfig('emergencyMeses', parseFloat(document.getElementById('cfgMeses').value)||3);
+  await setConfig('emergencyAhorro', parseFloat(document.getElementById('cfgAhorroActual').value)||0);
+  renderDashboard();
+};
+document.getElementById('btnSaveManualRates').onclick = async ()=>{
+  const oficial = parseFloat(document.getElementById('manOficial').value)||null;
+  const paralelo = parseFloat(document.getElementById('manParalelo').value)||null;
+  const usdt = parseFloat(document.getElementById('manUsdt').value)||null;
+  currentRates = {oficial: oficial||currentRates.oficial, paralelo: paralelo||currentRates.paralelo,
+                  usdt: usdt||currentRates.usdt, fecha:new Date().toISOString(), manual:true};
+  await setConfig('rates', currentRates);
+  await setConfig('manualRates', {...currentRates, overrides:true});
+  renderRatesStrip();
+  alert('Tasas manuales guardadas.');
+};
+document.getElementById('btnRefreshRates').onclick = async ()=>{
+  const ok = await fetchRates();
+  renderRatesStrip();
+  alert(ok? 'Tasas actualizadas.' : 'No se pudo conectar. Se mantienen las tasas guardadas — puedes ingresarlas manualmente en Ajustes.');
+};
+
+/* ---------------------------------------------------------------------
+   INIT
+   --------------------------------------------------------------------- */
+(async function init(){
+  if('serviceWorker' in navigator){
+    try{ await navigator.serviceWorker.register('sw.js'); }
+    catch(err){ console.warn('No se pudo registrar el service worker:', err); }
+  }
+  db = await openDB();
+  await seedIfEmpty();
+  await loadCachedRates();
+  updateSyncPill();
+  if(navigator.onLine) await fetchRates();
+  renderRatesStrip();
+  renderDashboard();
+
+  const meses = await getConfig('emergencyMeses', 3);
+  const ahorro = await getConfig('emergencyAhorro', 0);
+  document.getElementById('cfgMeses').value = meses;
+  document.getElementById('cfgAhorroActual').value = ahorro;
+  const scriptUrl = await getConfig('scriptUrl','');
+  document.getElementById('scriptUrlInput').value = scriptUrl;
+  document.getElementById('btnSyncNow').disabled = !scriptUrl;
+
+  if(scriptUrl && navigator.onLine){ trySync(); } // sincroniza apenas se abre la app
+
+  setInterval(()=>{ if(navigator.onLine) trySync(); }, 5*1000); // cada 5 segundos — ver nota sobre cuota de Apps Script en SETUP.md
+})();
+</script>
+</body>
+</html>
